@@ -1,4 +1,4 @@
-from pprint import pprint
+
 ### Step 1 - Store data in a .txt
 
 ## This step's instructions explains how to use the open() function, to write and read info from a .txt file. Follow the instructions to create and call a function to add a book, based off of the previous dictionaries for our library, to the .txt file properly formatted with commas as separators.
@@ -23,34 +23,83 @@ from pprint import pprint
 
 ## Now follow the instructions in this final step. Expand your project. Clean up the code. Make your application functional. Great job getting your first Python application finished!
 
+from pprint import pprint
+
+'''
+ - General Questions -
+ What are the best practices for preparing prototypes for review? Lots of comments?
+ When developing applications, do we typically code logic around user interface? Buttons for example or is that a seperate step?
+ Make small
+
+
+'''
+
+
 class QuitException(Exception):
     pass
+#initialize a book class
+class Book:
+    def __init__(self, title, author, year, rating, pages):
+        self.title = title
+        self.author = author
+        self.year = year
+        self.rating = rating
+        self.pages = pages
+#methods for the class
+    def display_details(self):
+        return f"{self.title} by {self.author} ({self.year}) - {self.rating} stars, {self.pages} pages."
 
+    def to_dictionary(self):
+        return {
+            "title": self.title,
+            "author": self.author,
+            "year": self.year,
+            "rating": self.rating,
+            "pages": self.pages
+        }
+    
+#text management
 def read_library():
     library = []
     with open("library.txt", "r") as fRead:
         for line in fRead:
             title, author, year, rating, pages = line.strip().split(", ")
+            #turns lines from txt to book objects
+            book_instance = Book(
+                title = title,
+                author = author,
+                year = int(year),
+                rating = float(rating),
+                pages = int(pages)
 
-            book_dictionary = {
-                "title": title,
-                "author": author,
-                "year": int(year),
-                "rating": float(rating),
-                "pages": int(pages)
-            }
+            )
 
-            library.append(book_dictionary)
+            library.append(book_instance)
     return library
 
-def write_library_to_file(library, file_path="library.txt"):
-    with open(file_path, "w") as file:
-        for book in library:
-            file.write(f"{book['title']}, {book['author']}, {book['year']}, {book['rating']}, {book['pages']}\n")
+'''I am having issues with writing to file. Specifically, when I go through my search functions
+I end up generating a new shorter list. If i make changes to that list and write them to the file
+my lists gets shorter. If I append, then I end up with of the same books because they end up being different
+books.
 
-def write_to_library(book_info):
-    with open("library.txt", "a") as fAppend:
-        fAppend.write(f"{book_info['title']}, {book_info['author']}, {book_info['year']}, {book_info['rating']}, {book_info['pages']}\n")
+What is best practice when it comes to managing external data sources? 
+
+'''
+
+def write_to_library_file(library, file_path="library.txt"):
+    main_library = read_library()
+
+    with open(file_path, "w") as file:
+        for existing_book in main_library:
+            if existing_book not in library:
+                file.write(f"{existing_book.to_dictionary()['title']}, {existing_book.to_dictionary()['author']}, {existing_book.to_dictionary()['year']}, {existing_book.to_dictionary()['rating']}, {existing_book.to_dictionary()['pages']}\n")
+
+        for book in library:
+            file.write(f"{book.to_dictionary()['title']}, {book.to_dictionary()['author']}, {book.to_dictionary()['year']}, {book.to_dictionary()['rating']}, {book.to_dictionary()['pages']}\n")
+
+#validation
+            
+'''What are best practices surrounding very similar functions?'''
 
 def get_valid_year():
     while True:
@@ -81,7 +130,32 @@ def get_valid_pages():
         except ValueError:
             print("Please enter a valid integer for the pages.")
 
-def input_book_info():
+#search functions
+            
+def search_books(query, library):     
+        book_list = []
+        for book in library:
+            if query.lower() in book.title.lower() or query.lower() in book.author.lower():
+                book_list.append(book)
+        return book_list
+
+def generate_filter_function(attribute, comparison):
+    def filter_books(value):
+        book_list = []
+        for book in library:
+            if comparison(getattr(book, attribute), value):
+                book_list.append(book)
+        return book_list
+    return filter_books
+
+findGoodBooks = generate_filter_function('rating', lambda x, y: x > y)
+shortBooks = generate_filter_function('pages', lambda x, y: x < y)
+newerBooks = generate_filter_function('year', lambda x, y: x > y)
+
+
+#add book
+
+def add_book():
     while True:
         try:
             title = input("Enter the book's title: ")
@@ -90,69 +164,26 @@ def input_book_info():
             rating = get_valid_rating()
             pages = get_valid_pages()
 
-            book_info = {
-                "title": title,
-                "author": author,
-                "year": year,
-                "rating": rating,
-                "pages": pages
-            }
+            book_info = Book(title, author, year, rating, pages)
 
-            write_to_library(book_info)
             library.append(book_info)
-            return book_info
-        
-        except KeyboardInterrupt:
-            print("\nInput interrupted. Please try again.")
+            print(f"{book_info.title} added to the library.")
+
+            write_to_library_file(library)
+
+            break
         except ValueError as ve:
             print(f"Error: {ve}")
         except Exception as e:
             print(f"An unexpected error occurred: {e}")
 
-def modify_books(library, book_title, prop, new_value, file_path="library.txt"):
-    for book in library:
-        if book['title'].lower() == book_title.lower() and prop in book:
-            book[prop] = new_value
-            write_library_to_file(library, file_path) 
-            return f"{prop} has been changed to '{new_value}'"
-    return f"Unknown property or book: {book_title}"
+#modify books
 
+def delete_book(library, book):
+    library.remove(book)
 
-
-def mod_book_handler(library):
-    try: 
-        title = input("Enter the title of your book you wish to modify:")
-
-        if not any(book['title'].lower() == title.lower() for book in library):
-            print(f"Book with title '{title}' not found in the library.")
-            return
-
-        print('Enter the property you wish to change.')
-        print('1. author')
-        print('2. year')
-        print('3. rating')
-        print('4. pages')
-        print('5. quit')
-
-        choice = int(input("Enter your choice: "))
-
-        if choice == 1:
-            new_value = input("Enter the new author value: ")
-        elif choice == 2:
-            new_value = get_valid_year()
-        elif choice == 3:
-            new_value = get_valid_rating()
-        elif choice == 4:
-            new_value = get_valid_pages()
-        elif choice == 5:
-            print("Goodbye!")
-            raise QuitException
-        else:
-            print("Please enter a valid choice (1, 2, 3, 4, or 5).")        
-
-        print(modify_books(library, title, choice, new_value))
-    except ValueError:
-        print("Invalid input. Please try again.")
+    write_to_library_file(library)
+    print(f"{book.title} deleted from the library.")
 
 def edit_book(library):
     try:
@@ -160,41 +191,56 @@ def edit_book(library):
         book_index = book_number - 1
         if 0 <= book_index < len(library):
             book = library[book_index]
-            title = book["title"]
 
-            print('Enter the property you wish to change.')
-            print('1. title')
-            print('2. author')
-            print('3. year')
-            print('4. rating')
-            print('5. pages')
-            print('6. quit')
+            print(f'Enter the action you wish to perform for {book.title}.')
+            print('1. Edit')
+            print('2. Delete')
+            print('3. Quit')
 
-            choice = int(input("Enter your choice: "))
+            action_choice = int(input("Enter your choice: "))
 
-            if choice == 1:
-                new_value = input("Enter the new title: ")
-            elif choice == 2:
-                new_value = input("Enter the new author: ")
-            elif choice == 3:
-                new_value = get_valid_year()
-            elif choice == 4:
-                new_value = get_valid_rating()
-            elif choice == 5:
-                new_value = get_valid_pages()      
-            elif choice == 6:
-                print("Goodbye!")
-                raise QuitException  
-            else:
-                print("Please enter a valid choice (1, 2, 3, 4, 5, or 6).")             
+            if action_choice == 1:
+                print(f'Enter the property you wish to change for {book.title}.')
+                print('1. title')
+                print('2. author')
+                print('3. year')
+                print('4. rating')
+                print('5. pages')
+                print('6. quit')
 
-            print(modify_books(library, title, choice, new_value))
+                choice = int(input("Enter your choice: "))
+
+                if choice == 1:
+                    book.title = input("Enter the new title: ")
+                elif choice == 2:
+                    book.author = input("Enter the new author: ")
+                elif choice == 3:
+                    book.year = get_valid_year()
+                elif choice == 4:
+                    book.rating = get_valid_rating()
+                elif choice == 5:
+                    book.pages = get_valid_pages()      
+                elif choice == 6:
+                    print("Goodbye!")
+                    raise QuitException  
+                else:
+                    print("Please enter a valid choice (1, 2, 3, 4, 5, or 6).")
+                write_to_library_file(library)
+            elif action_choice == 2:
+                confirm_delete = input(f"Are you sure you want to delete {book.title}? (y/n): ").lower()
+                if confirm_delete == 'y':
+                    delete_book(library, book)
+            elif action_choice == 3:
+                print("Returning to menu.")
+                quit
         else:
             print("Invalid book number.")
     except ValueError:
         print("Invalid input. Please enter a valid number.")
 
-def all_books(library):
+#view books
+
+def display_all_books(library):
     books_per_page = 10
     total_books = len(library)
     current_page = 1
@@ -212,9 +258,7 @@ def all_books(library):
         print(f"Page {current_page} of {total_books // books_per_page + 1}:")
 
         for i, book in enumerate(current_books, start=start_index + 1):
-            title, author, year, rating, pages = book.values()
-            book_string = f"{i}. {title} by {author} ({year}) - {rating} stars, {pages} pages."
-            print(book_string)
+            print(f"{i}. {book.display_details()}")
 
         print("\n1. Next Page")
         print("2. Previous Page")
@@ -239,32 +283,62 @@ def all_books(library):
                 print("Invalid choice. Please enter 1, 2, 3, or 4.")
         except ValueError:
             print("Invalid input. Please enter a valid number.")
-        
+
+def search_books():
+    while True:
+        try:
+            print("1. Search by title, or author")
+            print("2. Search by ratings")
+            print("3. Search by pages")
+            print("4. Search by publishing year")
+            print("5. Quit")
+
+            choice = int(input("Enter your choice: "))
+
+            if choice == 1:
+                query = input("Enter title or author name: ").lower()
+                display_all_books(search_books(query, library))
+            elif choice == 2:
+                display_all_books(findGoodBooks(get_valid_rating()))
+            elif choice == 3:
+                display_all_books(shortBooks(get_valid_pages()))
+            elif choice == 4:
+                display_all_books(newerBooks(get_valid_year()))
+            elif choice == 5:
+                print("Goodbye!")
+                break
+            else:
+                print("Please enter a valid choice (1, 2, 3, 4, 5, or 6).")
+
+        except ValueError:
+            print("Invalid input. Please enter a valid choice.")
+
+#Menu 
 
 def menu(library):
     while True:
         try:
-            print("MENU:")
+            print("~ MAIN MENU ~")
             print("1. Add a new book")
             print("2. See all books")
-            print("3. Edit a book")
+            print("3. Search for a book")
             print("4. Quit")
 
             choice = int(input("Enter your choice: "))
             
             if choice == 1:
-                input_book_info()
+                add_book()
                 print("Book added to the library.")
             elif choice == 2:
                 if not library:
                     print("No books in the library yet. Add a new book first!")
                 else:
-                    all_books(library)
+                    display_all_books(library)
             elif choice == 3:
                 if not library:
                     print("No books in the library yet. Add a new book first!")
                 else:
-                    mod_book_handler(library)
+                    search_books()
             elif choice == 4:
                 print("Goodbye!")
                 break
