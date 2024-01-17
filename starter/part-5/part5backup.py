@@ -26,6 +26,31 @@ from pprint import pprint
 class QuitException(Exception):
     pass
 
+class Book:
+    def __init__(self, index, title, author, year, rating, pages):
+        self.index = index
+        self.title = title
+        self.author = author
+        self.year = year
+        self.rating = rating
+        self.pages = pages
+        self.deleted = False  # Initialize deleted flag to False
+
+    def mark_as_deleted(self):
+        self.deleted = True
+
+    def to_dictionary(self):
+        # Return a dictionary representation of the book
+        return {
+            'index': self.index,
+            'title': self.title,
+            'author': self.author,
+            'year': self.year,
+            'rating': self.rating,
+            'pages': self.pages,
+            'deleted': self.deleted  # Include deleted flag in the dictionary
+        }
+    
 def read_library():
     library = []
     with open("library.txt", "r") as fRead:

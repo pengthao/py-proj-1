@@ -39,23 +39,30 @@ class QuitException(Exception):
     pass
 #initialize a book class
 class Book:
-    def __init__(self, title, author, year, rating, pages):
+    def __init__(self, index, title, author, year, rating, pages):
+        self.index = index
         self.title = title
         self.author = author
         self.year = year
         self.rating = rating
         self.pages = pages
-#methods for the class
+        self.deleted = False
+
     def display_details(self):
         return f"{self.title} by {self.author} ({self.year}) - {self.rating} stars, {self.pages} pages."
+    
+    def mark_as_deleted(self):
+        self.deleted = True
 
     def to_dictionary(self):
         return {
+            "index": self.index,
             "title": self.title,
             "author": self.author,
             "year": self.year,
             "rating": self.rating,
-            "pages": self.pages
+            "pages": self.pages,
+            "deleted": self.deleted
         }
     
 #text management
@@ -63,39 +70,54 @@ def read_library():
     library = []
     with open("library.txt", "r") as fRead:
         for line in fRead:
-            title, author, year, rating, pages = line.strip().split(", ")
-            #turns lines from txt to book objects
-            book_instance = Book(
-                title = title,
-                author = author,
-                year = int(year),
-                rating = float(rating),
-                pages = int(pages)
+            values = line.strip().split(", ")
+            if len(values) == 6:
+                index, title, author, year, rating, pages = values
+                # turns lines from txt to book objects
+                book_instance = Book(
+                    index=int(index),
+                    title=title,
+                    author=author,
+                    year=int(year),
+                    rating=float(rating),
+                    pages=int(pages)
+                )
+                library.append(book_instance)
+            else:
+                print(f"Skipping invalid line: {line}")
 
-            )
-
-            library.append(book_instance)
     return library
 
-'''I am having issues with writing to file. Specifically, when I go through my search functions
-I end up generating a new shorter list. If i make changes to that list and write them to the file
-my lists gets shorter. If I append, then I end up with of the same books because they end up being different
-books.
-
-What is best practice when it comes to managing external data sources? 
-
-'''
 
 def write_to_library_file(library, file_path="library.txt"):
     main_library = read_library()
 
-    with open(file_path, "w") as file:
-        for existing_book in main_library:
-            if existing_book not in library:
-                file.write(f"{existing_book.to_dictionary()['title']}, {existing_book.to_dictionary()['author']}, {existing_book.to_dictionary()['year']}, {existing_book.to_dictionary()['rating']}, {existing_book.to_dictionary()['pages']}\n")
+    # Update existing books and mark deleted books
+    for book in library:
+        book_dict = book.to_dictionary()
 
-        for book in library:
-            file.write(f"{book.to_dictionary()['title']}, {book.to_dictionary()['author']}, {book.to_dictionary()['year']}, {book.to_dictionary()['rating']}, {book.to_dictionary()['pages']}\n")
+        # Check if the book with the same index exists in main_library
+        existing_books = [existing_book for existing_book in main_library if existing_book.to_dictionary()['index'] == book_dict['index']]
+
+        if existing_books:
+            # Update the existing book with the new information
+            existing_book = existing_books[0]
+            existing_book.title = str(book_dict['title'])
+            existing_book.author = str(book_dict['author'])
+            existing_book.year = int(book_dict['year'])
+            existing_book.rating = float(book_dict['rating'])
+            existing_book.pages = int(book_dict['pages'])
+            existing_book.deleted = book_dict['deleted']  # Update deleted flag
+        else:
+            # If the book with the same index doesn't exist, add the new book to main_library
+            main_library.append(book)
+
+    # Exclude deleted books when writing to the file
+    with open(file_path, "w") as file:
+        for book in main_library:
+            if not getattr(book, 'deleted', False):
+                file.write(f"{book.to_dictionary()['index']}, {book.to_dictionary()['title']}, {book.to_dictionary()['author']}, {str(book.to_dictionary()['year'])}, {str(book.to_dictionary()['rating'])}, {str(book.to_dictionary()['pages'])}\n")
+
 
 #validation
             
@@ -155,32 +177,34 @@ newerBooks = generate_filter_function('year', lambda x, y: x > y)
 
 #add book
 
-def add_book():
-    while True:
-        try:
-            title = input("Enter the book's title: ")
-            author = input("Enter the book's author: ")
-            year = get_valid_year()
-            rating = get_valid_rating()
-            pages = get_valid_pages()
+def add_book(library):
+    try:
+        main_library = read_library()
+        highest_index = max([book.index for book in main_library], default=0)
 
-            book_info = Book(title, author, year, rating, pages)
+        title = input("Enter the book's title: ")
+        author = input("Enter the book's author: ")
+        year = get_valid_year()
+        rating = get_valid_rating()
+        pages = get_valid_pages()
+        new_index = highest_index + 1
 
-            library.append(book_info)
-            print(f"{book_info.title} added to the library.")
+        book_info = Book(new_index, title, author, year, rating, pages)
 
-            write_to_library_file(library)
+        library.append(book_info)
+        print(f"{book_info.title} added to the library.")
 
-            break
-        except ValueError as ve:
-            print(f"Error: {ve}")
-        except Exception as e:
-            print(f"An unexpected error occurred: {e}")
+        write_to_library_file(library)
+
+    except ValueError as ve:
+        print(f"Error: {ve}")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
 
 #modify books
 
 def delete_book(library, book):
-    library.remove(book)
+    book.mark_as_deleted()
 
     write_to_library_file(library)
     print(f"{book.title} deleted from the library.")
@@ -242,10 +266,13 @@ def edit_book(library):
 
 def display_all_books(library):
     books_per_page = 10
-    total_books = len(library)
+    total_books = len([book for book in library if not getattr(book, 'deleted', False)])
     current_page = 1
 
     while True:
+
+        library = [book for book in library if not getattr(book, 'deleted', False)]
+
         start_index = (current_page - 1) * books_per_page
         end_index = start_index + books_per_page
 
@@ -259,6 +286,7 @@ def display_all_books(library):
 
         for i, book in enumerate(current_books, start=start_index + 1):
             print(f"{i}. {book.display_details()}")
+            print(f"{i}. {book.index}")
 
         print("\n1. Next Page")
         print("2. Previous Page")
@@ -327,7 +355,7 @@ def menu(library):
             choice = int(input("Enter your choice: "))
             
             if choice == 1:
-                add_book()
+                add_book(library)
                 print("Book added to the library.")
             elif choice == 2:
                 if not library:
