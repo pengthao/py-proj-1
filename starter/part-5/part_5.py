@@ -25,16 +25,6 @@
 
 from pprint import pprint
 
-'''
- - General Questions -
- What are the best practices for preparing prototypes for review? Lots of comments?
- When developing applications, do we typically code logic around user interface? Buttons for example or is that a seperate step?
- Make small
-
-
-'''
-
-
 class QuitException(Exception):
     pass
 #initialize a book class
@@ -66,6 +56,11 @@ class Book:
         }
     
 #text management
+    #read library will convert text lines to book objects and slot them into the library array.
+    '''write library to file will initialize a new instance of library from the text file
+        to compare filtered results and transcribe library to the text file.
+    '''
+
 def read_library():
     library = []
     with open("library.txt", "r") as fRead:
@@ -119,9 +114,7 @@ def write_to_library_file(library, file_path="library.txt"):
                 file.write(f"{book.to_dictionary()['index']}, {book.to_dictionary()['title']}, {book.to_dictionary()['author']}, {str(book.to_dictionary()['year'])}, {str(book.to_dictionary()['rating'])}, {str(book.to_dictionary()['pages'])}\n")
 
 
-#validation
-            
-'''What are best practices surrounding very similar functions?'''
+#validation - These are reusable validation functions
 
 def get_valid_year():
     while True:
@@ -152,7 +145,7 @@ def get_valid_pages():
         except ValueError:
             print("Please enter a valid integer for the pages.")
 
-#search functions
+#search functions - you pass in the array as library generate a new library list with the corresponding query.
             
 def search_books(query, library):     
         book_list = []
@@ -286,7 +279,6 @@ def display_all_books(library):
 
         for i, book in enumerate(current_books, start=start_index + 1):
             print(f"{i}. {book.display_details()}")
-            print(f"{i}. {book.index}")
 
         print("\n1. Next Page")
         print("2. Previous Page")
@@ -312,6 +304,14 @@ def display_all_books(library):
         except ValueError:
             print("Invalid input. Please enter a valid number.")
 
+def title_author_search(query, library):
+    search = []
+    for book in library:
+        if query.lower() in book.title.lower() or query.lower() in book.author.lower():
+            search.append(book)
+
+    return search
+
 def search_books():
     while True:
         try:
@@ -325,7 +325,7 @@ def search_books():
 
             if choice == 1:
                 query = input("Enter title or author name: ").lower()
-                display_all_books(search_books(query, library))
+                display_all_books(title_author_search(query, library))
             elif choice == 2:
                 display_all_books(findGoodBooks(get_valid_rating()))
             elif choice == 3:

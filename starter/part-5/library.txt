@@ -1,4 +1,3 @@
-3, Boogers, Boogero451230s.r, 22022, 0.1, 3
 4, Don Quixote, Miguel de Cervantes Saavedra, 1605, 3.9, 1023
 5, To Kill a Mockingbird, Harper Lee, 1960, 4.26, 323
 6, The Great Gatsby, F. Scott Fitzgerald, 1925, 3.93, 180
@@ -8,3 +7,4 @@
 10, To the Lighthouse, Virginia Woolf, 1927, 3.8, 209
 11, The Pineapples of Wrath, John Steinbeck, 1939, 4.0, 479
 12, Animal Farm, George Orwell, 1940, 3.85, 503
+13, Catch-22, Joseph Heller, 1961, 3.99, 453
