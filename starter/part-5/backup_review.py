@@ -89,20 +89,20 @@ def write_to_library_file(library, file_path="library.txt"):
 
     # Update existing books and mark deleted books
     for book in library:
-        #book_dict = book.to_dictionary()
+        book_dict = book.to_dictionary()
 
         # Check if the book with the same index exists in main_library
-        existing_books = [existing_book for existing_book in main_library if existing_book.index == book.index]
+        existing_books = [existing_book for existing_book in main_library if existing_book.to_dictionary()['index'] == book_dict['index']]
 
         if existing_books:
             # Update the existing book with the new information
             existing_book = existing_books[0]
-            existing_book.title = str(book.title)
-            existing_book.author = str(book.author)
-            existing_book.year = int(book.year)
-            existing_book.rating = float(book.rating)
-            existing_book.pages = int(book.pages)
-            existing_book.deleted = book.deleted  # Update deleted flag
+            existing_book.title = str(book_dict['title'])
+            existing_book.author = str(book_dict['author'])
+            existing_book.year = int(book_dict['year'])
+            existing_book.rating = float(book_dict['rating'])
+            existing_book.pages = int(book_dict['pages'])
+            existing_book.deleted = book_dict['deleted']  # Update deleted flag
         else:
             # If the book with the same index doesn't exist, add the new book to main_library
             main_library.append(book)
